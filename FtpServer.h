@@ -587,6 +587,7 @@ private:
   bool    doMlsd();
   void    closeTransfer();
   void    abortTransfer();
+  void    invokeCallback(FtpOperation op);
 #ifdef DYNAMIC_TRANSFER_BUFFER
   void    allocateTransferBuffer();
   void    releaseTransferBuffer();

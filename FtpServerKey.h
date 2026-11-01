@@ -158,4 +158,11 @@ https://github.com/arduino-libraries/Ethernet/issues/88
   #define FTP_BUF_SIZE_MAX 4096
 #endif
 
+// Pass the storage free/total space to the status callback (1) or zeros (0).
+// Free space on a FAT volume means scanning the whole allocation table, which can
+// take seconds on a large card and trip a watchdog on small controllers.
+#ifndef FTP_CALLBACK_REPORTS_FREE_SPACE
+  #define FTP_CALLBACK_REPORTS_FREE_SPACE 1
+#endif
+
 #endif // FTP_SERVER_CONFIG_H

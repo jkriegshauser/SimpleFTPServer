@@ -169,6 +169,20 @@ FtpServer::~FtpServer()
 #endif
 }
 
+// Invoke the status callback. The free and total space figures are optional because
+// computing free space on a large FAT volume reads the whole allocation table.
+void FtpServer::invokeCallback(FtpOperation op)
+{
+  if (!FtpServer::_callback) {
+    return;
+  }
+#if FTP_CALLBACK_REPORTS_FREE_SPACE
+  FtpServer::_callback(op, free(), capacity());
+#else
+  FtpServer::_callback(op, 0, 0);
+#endif
+}
+
 #ifdef DYNAMIC_TRANSFER_BUFFER
 // Allocate the transfer buffer for a data transfer. It is sized from the heap that is
 // free at this moment (one quarter, capped at FTP_BUF_SIZE_MAX) and falls back to the
@@ -315,7 +329,7 @@ void FtpServer::end()
     DEBUG_PRINTLN(F("Stop server!"));
 
     if (FtpServer::_callback) {
-  	  FtpServer::_callback(FTP_DISCONNECT, free(), capacity());
+  	  invokeCallback(FTP_DISCONNECT);
     }
 
     cmdStage = FTP_Init;
@@ -429,7 +443,7 @@ uint8_t FtpServer::handleFTP() {
 				millisEndConnection = millis() + 1000L * FTP_TIME_OUT;
 		} else if (!client.connected()) {
 			if (FtpServer::_callback) {
-			  FtpServer::_callback(FTP_DISCONNECT, free(), capacity());
+			  invokeCallback(FTP_DISCONNECT);
 			}
 
 			cmdStage = FTP_Init;
@@ -443,7 +457,7 @@ uint8_t FtpServer::handleFTP() {
 		{
 			if (!doStore()) {
 		    	  if (FtpServer::_callback) {
-		    		  FtpServer::_callback(FTP_FREE_SPACE_CHANGE, free(), capacity());
+		    		  invokeCallback(FTP_FREE_SPACE_CHANGE);
 		    	  }
 
 				transferStage = FTP_Close;
@@ -497,7 +511,7 @@ void FtpServer::clientConnected()
   client.print  (F("220 --   Version ")); client.print(FTP_SERVER_VERSION); client.println(F("   --"));
   iCL = 0;
   if (FtpServer::_callback) {
-	  FtpServer::_callback(FTP_CONNECT, free(), capacity());
+	  invokeCallback(FTP_CONNECT);
   }
 
 }
@@ -510,7 +524,7 @@ void FtpServer::disconnectClient()
   client.println(F("221 Goodbye") );
 
   if (FtpServer::_callback) {
-	  FtpServer::_callback(FTP_DISCONNECT, free(), capacity());
+	  invokeCallback(FTP_DISCONNECT);
   }
 
   // Ensure the client socket is properly closed on all platforms
@@ -858,7 +872,7 @@ bool FtpServer::processCommand()
     if( haveParameter() && makeExistsPath( path )) {
       if( remove( path )) {
     	  if (FtpServer::_callback) {
-    		  FtpServer::_callback(FTP_FREE_SPACE_CHANGE, free(), capacity());
+    		  invokeCallback(FTP_FREE_SPACE_CHANGE);
     	  }
 
         client.print( F("250 Deleted ") ); client.println( parameter );
